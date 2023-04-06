@@ -16,13 +16,13 @@ public:
 
   void calculateControl(const Eigen::Vector3d& des_pos,
                         const Eigen::Vector3d& des_vel,
-                        const Eigen::Vector3d& des_acc, const double des_yaw,
+                        const Eigen::Vector3d& des_acc, const double des_yaw,const double des_roll,
                         const double des_yaw_dot, const Eigen::Vector3d& kx,
                         const Eigen::Vector3d& kv);
 
   const Eigen::Vector3d&    getComputedForce(void);
   const Eigen::Quaterniond& getComputedOrientation(void);
-
+const Eigen::Quaterniond& getComputedOrientationb(void);
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 private:
@@ -36,6 +36,7 @@ private:
   // Outputs of the controller
   Eigen::Vector3d    force_;
   Eigen::Quaterniond orientation_;
+  Eigen::Quaterniond orientation_b;//HTQR
 };
 
 #endif

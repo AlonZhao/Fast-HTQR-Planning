@@ -159,7 +159,7 @@ getControl(const QuadrotorSimulator::Quadrotor& quad, const Command& cmd)
 }
 
 static void
-cmd_callback(const quadrotor_msgs::SO3Command::ConstPtr& cmd)
+cmd_callback(const quadrotor_msgs::SO3Command::ConstPtr& cmd)//HTQR
 {
   command.force[0]         = cmd->force.x;
   command.force[1]         = cmd->force.y;
@@ -207,7 +207,7 @@ main(int argc, char** argv)
   ros::Publisher  odom_pub = n.advertise<nav_msgs::Odometry>("odom", 100);
   ros::Publisher  imu_pub  = n.advertise<sensor_msgs::Imu>("imu", 10);
   ros::Subscriber cmd_sub =
-    n.subscribe("cmd", 100, &cmd_callback, ros::TransportHints().tcpNoDelay());
+    n.subscribe("cmd", 100, &cmd_callback, ros::TransportHints().tcpNoDelay());//<remap from="~cmd" to="so3_cmd"/> 
   ros::Subscriber f_sub =
     n.subscribe("force_disturbance", 100, &force_disturbance_callback,
                 ros::TransportHints().tcpNoDelay());
@@ -268,7 +268,7 @@ main(int argc, char** argv)
   ros::Time next_odom_pub_time = ros::Time::now();
 
   //
-   //for target
+   //for target follow
 tf::TransformBroadcaster br;
 tf::Transform transform;
   while (n.ok())
@@ -301,7 +301,7 @@ tf::Transform transform;
       odom_pub.publish(odom_msg);
       imu_pub.publish(imu);
     }
-    //for tf
+    //for follower tf 当前的位置和方向
     transform.setOrigin( tf::Vector3(odom_msg.pose.pose.position.x, odom_msg.pose.pose.position.y, odom_msg.pose.pose.position.z));
     transform.setRotation( tf::Quaternion(odom_msg.pose.pose.orientation.x,odom_msg.pose.pose.orientation.y ,odom_msg.pose.pose.orientation.z, odom_msg.pose.pose.orientation.w) );
     br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "carrot1"));

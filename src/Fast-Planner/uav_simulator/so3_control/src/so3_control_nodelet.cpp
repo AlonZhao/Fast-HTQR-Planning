@@ -51,6 +51,8 @@ private:
 
   Eigen::Vector3d des_pos_, des_vel_, des_acc_, kx_, kv_;
   double          des_yaw_, des_yaw_dot_;
+  double          des_roll_, des_roll_dot_;//HTQR
+  double          current_roll_;//HTQR
   double          current_yaw_;
   bool            enable_motors_;
   bool            use_external_yaw_;
@@ -60,11 +62,12 @@ private:
 void
 SO3ControlNodelet::publishSO3Command(void)
 {
-  controller_.calculateControl(des_pos_, des_vel_, des_acc_, des_yaw_,
-                               des_yaw_dot_, kx_, kv_);
+  controller_.calculateControl(des_pos_, des_vel_, des_acc_, des_yaw_,des_roll_,//HTQR
+                               des_yaw_dot_, kx_, kv_);//微分平坦 计算得到角度orientation_ orientation_b 
 
   const Eigen::Vector3d&    force       = controller_.getComputedForce();
   const Eigen::Quaterniond& orientation = controller_.getComputedOrientation();
+  const Eigen::Quaterniond& orientationb = controller_.getComputedOrientationb();
 
   quadrotor_msgs::SO3Command::Ptr so3_command(
     new quadrotor_msgs::SO3Command); //! @note memory leak?
@@ -76,7 +79,12 @@ SO3ControlNodelet::publishSO3Command(void)
   so3_command->orientation.x   = orientation.x();
   so3_command->orientation.y   = orientation.y();
   so3_command->orientation.z   = orientation.z();
-  so3_command->orientation.w   = orientation.w();
+  so3_command->orientation.w   = orientation.w();//扩充so3command
+  
+  so3_command->orientationb.x   = orientationb.x();
+  so3_command->orientationb.y   = orientationb.y();
+  so3_command->orientationb.z   = orientationb.z();
+  so3_command->orientationb.w   = orientationb.w();//扩充so3command
   for (int i = 0; i < 3; i++)
   {
     so3_command->kR[i]  = kR_[i];
@@ -92,7 +100,7 @@ SO3ControlNodelet::publishSO3Command(void)
 }
 
 void
-SO3ControlNodelet::position_cmd_callback(
+SO3ControlNodelet::position_cmd_callback(//HTQR 2
   const quadrotor_msgs::PositionCommand::ConstPtr& cmd)
 {
   des_pos_ = Eigen::Vector3d(cmd->position.x, cmd->position.y, cmd->position.z);
@@ -104,6 +112,8 @@ SO3ControlNodelet::position_cmd_callback(
 
   des_yaw_              = cmd->yaw;
   des_yaw_dot_          = cmd->yaw_dot;
+  des_roll_             = cmd->roll;
+  des_roll_dot_         = cmd->roll_dot;
   position_cmd_updated_ = true;
   position_cmd_init_    = true;
 
@@ -200,7 +210,7 @@ SO3ControlNodelet::onInit(void)
                           ros::TransportHints().tcpNoDelay());
   position_cmd_sub_ =
     n.subscribe("position_cmd", 10, &SO3ControlNodelet::position_cmd_callback,
-                this, ros::TransportHints().tcpNoDelay());
+                this, ros::TransportHints().tcpNoDelay());//got cmd-HTQR
 
   enable_motors_sub_ =
     n.subscribe("motors", 2, &SO3ControlNodelet::enable_motors_callback, this,

@@ -1,6 +1,6 @@
 #include <iostream>
 #include <so3_control/SO3Control.h>
-
+#include<Eigen/Geometry>
 #include <ros/ros.h>
 
 SO3Control::SO3Control()
@@ -38,7 +38,7 @@ void
 SO3Control::calculateControl(const Eigen::Vector3d& des_pos,
                              const Eigen::Vector3d& des_vel,
                              const Eigen::Vector3d& des_acc,
-                             const double des_yaw, const double des_yaw_dot,
+                             const double des_yaw,const double des_roll, const double des_yaw_dot,
                              const Eigen::Vector3d& kx,
                              const Eigen::Vector3d& kv)
 {
@@ -76,9 +76,10 @@ SO3Control::calculateControl(const Eigen::Vector3d& des_pos,
     force_.noalias() = s * f + mass_ * g_ * Eigen::Vector3d(0, 0, 1);
   }
   // Limit control angle to 45 degree
-
+//基于欧拉角的微分平坦求姿态
   Eigen::Vector3d b1c, b2c, b3c;
   Eigen::Vector3d b1d(cos(des_yaw), sin(des_yaw), 0);
+
 
   if (force_.norm() > 1e-6)
     b3c.noalias() = force_.normalized();
@@ -91,7 +92,20 @@ SO3Control::calculateControl(const Eigen::Vector3d& des_pos,
   Eigen::Matrix3d R;
   R << b1c, b2c, b3c;
 
-  orientation_ = Eigen::Quaterniond(R);
+  orientation_ = Eigen::Quaterniond(R);//获得桨叶平面姿态
+  //计算HTQR 机体姿态 与桨叶平面姿态相比只有y轴方向不同
+  Eigen::Vector3d PropellerAngle=R.eulerAngles(2,1,0);
+
+  Eigen::Vector3d BodyAngle = PropellerAngle;
+  BodyAngle(2) = des_roll;//
+
+  Eigen::AngleAxisd rollAngle(Eigen::AngleAxisd(BodyAngle(2),Eigen::Vector3d::UnitX()));
+  Eigen::AngleAxisd pitchAngle(Eigen::AngleAxisd(BodyAngle(1),Eigen::Vector3d::UnitY()));
+  Eigen::AngleAxisd yawAngle(Eigen::AngleAxisd(BodyAngle(0),Eigen::Vector3d::UnitZ()));
+ 
+  Eigen::Matrix3d Rb;
+  Rb=yawAngle*pitchAngle*rollAngle;
+    orientation_b = Eigen::Quaterniond(Rb);//获得桨叶平面姿态
 }
 
 const Eigen::Vector3d&
@@ -105,7 +119,11 @@ SO3Control::getComputedOrientation(void)
 {
   return orientation_;
 }
-
+const Eigen::Quaterniond&//HTQR
+SO3Control::getComputedOrientationb(void)
+{
+  return orientation_b;
+}
 void
 SO3Control::setAcc(const Eigen::Vector3d& acc)
 {

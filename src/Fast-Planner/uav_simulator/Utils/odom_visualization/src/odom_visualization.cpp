@@ -18,7 +18,7 @@ using namespace std;
 static  string mesh_resource;
 static double color_r, color_g, color_b, color_a, cov_scale, scale;
 
-bool   cross_config = false;
+bool   cross_config = true;
 bool   tf45       = false;
 bool   cov_pos    = false;
 bool   cov_vel    = false;

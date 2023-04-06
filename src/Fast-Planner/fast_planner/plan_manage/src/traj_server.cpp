@@ -255,6 +255,8 @@ void cmdCallback(const ros::TimerEvent& e) {
 
   cmd.yaw = yaw;
   cmd.yaw_dot = yawdot;
+  cmd.roll = 0;
+  cmd.roll_dot = 0;//HTQR source
 
   auto pos_err = pos_f - pos;
   // if (pos_err.norm() > 1e-3) {
@@ -358,6 +360,9 @@ void PredictcmdCallback(const ros::TimerEvent& e) {
 
  // traj_cmd_.push_back(pos);
   //if (traj_cmd_.size() > 10000) traj_cmd_.erase(traj_cmd_.begin(), traj_cmd_.begin() + 1000);
+
+
+
 }
 
 int main(int argc, char** argv) {
