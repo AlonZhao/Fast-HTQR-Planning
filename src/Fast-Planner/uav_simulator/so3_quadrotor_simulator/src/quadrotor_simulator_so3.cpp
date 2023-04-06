@@ -21,6 +21,8 @@ typedef struct _Command
   float corrections[3];
   float current_yaw;
   bool  use_external_yaw;
+  //HTQR
+  float qbx, qby, qbz, qbw;
 } Command;
 
 typedef struct _Disturbance
@@ -159,7 +161,7 @@ getControl(const QuadrotorSimulator::Quadrotor& quad, const Command& cmd)
 }
 
 static void
-cmd_callback(const quadrotor_msgs::SO3Command::ConstPtr& cmd)//HTQR
+cmd_callback(const quadrotor_msgs::SO3Command::ConstPtr& cmd)//HTQR=>simulator command
 {
   command.force[0]         = cmd->force.x;
   command.force[1]         = cmd->force.y;
@@ -179,6 +181,13 @@ cmd_callback(const quadrotor_msgs::SO3Command::ConstPtr& cmd)//HTQR
   command.corrections[2]   = cmd->aux.angle_corrections[1];
   command.current_yaw      = cmd->aux.current_yaw;
   command.use_external_yaw = cmd->aux.use_external_yaw;
+  //HTQR
+  command.qbx               = cmd->orientationb.x;
+  command.qby               = cmd->orientationb.y;
+  command.qbz               = cmd->orientationb.z;
+  command.qbw               = cmd->orientationb.w;
+
+
 }
 
 static void
@@ -205,8 +214,9 @@ main(int argc, char** argv)
   ros::NodeHandle n("~");
 
   ros::Publisher  odom_pub = n.advertise<nav_msgs::Odometry>("odom", 100);
+  //<remap from="~odom" to="/visual_slam/odom"/>
   ros::Publisher  imu_pub  = n.advertise<sensor_msgs::Imu>("imu", 10);
-  ros::Subscriber cmd_sub =
+  ros::Subscriber cmd_sub =//==>simulator command
     n.subscribe("cmd", 100, &cmd_callback, ros::TransportHints().tcpNoDelay());//<remap from="~cmd" to="so3_cmd"/> 
   ros::Subscriber f_sub =
     n.subscribe("force_disturbance", 100, &force_disturbance_callback,
@@ -222,7 +232,7 @@ main(int argc, char** argv)
   n.param("simulator/init_state_z", _init_z, 1.0);
 
   Eigen::Vector3d position = Eigen::Vector3d(_init_x, _init_y, _init_z);
-  quad.setStatePos(position);
+  quad.setStatePos(position);//无人机初始位置
 
   double simulation_rate;
   n.param("rate/simulation", simulation_rate, 1000.0);
@@ -276,7 +286,7 @@ tf::Transform transform;
     ros::spinOnce();
 
     auto last = control;
-    control   = getControl(quad, command);
+    control   = getControl(quad, command);//
     for (int i = 0; i < 4; ++i)
     {
       //! @bug might have nan when the input is legal

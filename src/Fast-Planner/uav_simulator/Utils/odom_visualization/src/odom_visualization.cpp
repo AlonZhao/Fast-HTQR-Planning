@@ -43,7 +43,7 @@ visualization_msgs::Marker covROS;
 visualization_msgs::Marker covVelROS;
 visualization_msgs::Marker trajROS;
 visualization_msgs::Marker sensorROS;
-visualization_msgs::Marker meshROS;
+visualization_msgs::Marker meshROS;//visiual
 sensor_msgs::Range         heightROS;
 string _frame_id;
 
@@ -57,9 +57,9 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr& msg)
   pose(2) = msg->pose.pose.position.z;
   colvec q(4);
   q(0)    = msg->pose.pose.orientation.w;
-  q(1)    = msg->pose.pose.orientation.x;
-  q(2)    = msg->pose.pose.orientation.y;
-  q(3)    = msg->pose.pose.orientation.z;
+  q(1)    = msg->pose.pose.orientation.x;//x
+  q(2)    = msg->pose.pose.orientation.y;//y
+  q(3)    = msg->pose.pose.orientation.z;//z
   pose.rows(3,5) = R_to_ypr(quaternion_to_R(q));
   colvec vel(3);
   vel(0) = msg->twist.twist.linear.x;
@@ -89,8 +89,10 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr& msg)
   poseROS.pose.orientation.w = q(0);
   poseROS.pose.orientation.x = q(1);
   poseROS.pose.orientation.y = q(2);
-  poseROS.pose.orientation.z = q(3);      
-  posePub.publish(poseROS);
+  poseROS.pose.orientation.z = q(3);  //to /odom_visualization/pose 而已
+
+    
+  posePub.publish(poseROS);//
   
   // Velocity
   colvec yprVel(3);
@@ -344,7 +346,7 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr& msg)
   meshROS.pose.orientation.w = q(0);
   meshROS.pose.orientation.x = q(1);
   meshROS.pose.orientation.y = q(2);
-  meshROS.pose.orientation.z = q(3);
+  meshROS.pose.orientation.z = q(3);//决定视觉显示
   meshROS.scale.x = scale;
   meshROS.scale.y = scale;
   meshROS.scale.z = scale;
@@ -353,7 +355,7 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr& msg)
   meshROS.color.g = color_g;
   meshROS.color.b = color_b;
   meshROS.mesh_resource = mesh_resource;
-  meshPub.publish(meshROS);                                                  
+  meshPub.publish(meshROS);        //HTQR                                          
 
   // TF for raw sensor visualization
   if (tf45)

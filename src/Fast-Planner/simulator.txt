@@ -1,0 +1,25 @@
+#so3_control_nodelet.cpp
+sub odom+sub positiong cmd => pub so3command
+
+sub pos_cmd->position_cmd_callback
+		->pub so3_cmd
+			(controller_.calculateControl())
+#quadrotor_simulator_so3.cpp:
+sub command => pub odom
+ros::Subscriber cmd_sub =//==>simulator command
+    n.subscribe("cmd",  &cmd_callback)//<remap from="~cmd" to="so3_cmd"/>
+    
+odom=>pub <remap from="~odom" to="/visual_slam/odom"/>
+从 command=>state=>odom:
+control   = getControl(quad, command);/
+      state                 = quad.getState();
+      stateToOdomMsg(state, odom_msg);
+      quadToImuMsg(quad, imu);
+      odom_pub.publish(odom_msg);
+      
+#odom_visualization.cpp
+odom==> sub <remap from="~odom" to="/visual_slam/odom"/>
+odom_visualization:odom_callback(const nav_msgs::Odometry::ConstPtr& msg)
+之影响显示效果 可以用bodyR
+
+

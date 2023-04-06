@@ -96,7 +96,7 @@ SO3ControlNodelet::publishSO3Command(void)
   so3_command->aux.angle_corrections[1] = corrections_[2];
   so3_command->aux.enable_motors        = enable_motors_;
   so3_command->aux.use_external_yaw     = use_external_yaw_;
-  so3_command_pub_.publish(so3_command);
+  so3_command_pub_.publish(so3_command);//发布command
 }
 
 void
@@ -204,7 +204,7 @@ SO3ControlNodelet::onInit(void)
   n.param("corrections/r", corrections_[1], 0.0);
   n.param("corrections/p", corrections_[2], 0.0);
 
-  so3_command_pub_ = n.advertise<quadrotor_msgs::SO3Command>("so3_cmd", 10);
+  so3_command_pub_ = n.advertise<quadrotor_msgs::SO3Command>("so3_cmd", 10);//output HTQR 
 
   odom_sub_ = n.subscribe("odom", 10, &SO3ControlNodelet::odom_callback, this,
                           ros::TransportHints().tcpNoDelay());
