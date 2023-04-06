@@ -203,7 +203,7 @@ void BsplineOptimizer::optimize() {
    edt_environment_->evaluateEDTWithGrad(test_p, -1.0, test_dist, test_dist_grad);
    test_dist2 = edt_environment_->evaluateCoarseEDT(test_p,-1);//写上1会报错
    //std::cout<<"=============evaluateCoarseEDT========== "<<test_dist<<std::endl;
-   std::cout<<"=============evaluateEDTWithGrad========== "<<test_dist_grad.transpose()<<"dist"<<test_dist<<std::endl;
+   //std::cout<<"=============evaluateEDTWithGrad========== "<<test_dist_grad.transpose()<<"dist"<<test_dist<<std::endl;
 
 
 }

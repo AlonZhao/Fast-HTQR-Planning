@@ -177,15 +177,17 @@ bool FastPlannerManager::kinodynamicReplan(Eigen::Vector3d start_pt, Eigen::Vect
     cout << "[kino replan]: kinodynamic search success." << endl;
   }
 
-  plan_data_.kino_path_ = kino_path_finder_->getKinoTraj(0.01);
-
-  t_search = (ros::Time::now() - t1).toSec();
+  plan_data_.kino_path_ = kino_path_finder_->getKinoTraj(0.01);//按照找到的路径点 获得0.01分辨率的动力学可行的轨迹
+  //路径点在path_nodes_里面  产生的离散状态点在 plan_data中非常密集
+  std::cout<<"##### plan_data_.kino_path_ size   "<<plan_data_.kino_path_.size()<<std:: endl;
+  t_search = (ros::Time::now() - t1).toSec();//从搜索结束开始计时开始
 
   // parameterize the path to bspline
 
   double                  ts = pp_.ctrl_pt_dist / pp_.max_vel_;
   vector<Eigen::Vector3d> point_set, start_end_derivatives;
   kino_path_finder_->getSamples(ts, point_set, start_end_derivatives);
+  std::cout<<"#### point_set size    "<<point_set.size()<<std::endl;//比较稀疏
 
   Eigen::MatrixXd ctrl_pts;
   //路径B样条函数拟合 得到控制点
@@ -193,7 +195,7 @@ bool FastPlannerManager::kinodynamicReplan(Eigen::Vector3d start_pt, Eigen::Vect
   NonUniformBspline init(ctrl_pts, 3, ts);
 
   // bspline trajectory optimization
-
+std::cout<<"### ctrl_pts size "<<ctrl_pts.size()<<std::endl;
   t1 = ros::Time::now();
 
   int cost_function = BsplineOptimizer::NORMAL_PHASE;
@@ -218,8 +220,7 @@ bool FastPlannerManager::kinodynamicReplan(Eigen::Vector3d start_pt, Eigen::Vect
   int iter_num = 0;
   while (!feasible && ros::ok()) {
 
-    feasible = pos.reallocateTime();
-
+    feasible = pos.reallocateTime();//重新分配时间
     if (++iter_num >= 3) break;
   }
 

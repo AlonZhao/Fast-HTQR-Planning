@@ -86,31 +86,10 @@ Vec3f center_point ;
             pose_predict_cmd = node.subscribe("/pred_position_cmd", 1, &SFC_GEN::cmd_predictHandleCallback,this);
             sfc_gen = node.createTimer(ros::Duration(0.05), &SFC_GEN::sfc_along_pathCallback,this);
             sfc_visual = node.createTimer(ros::Duration(0.01), &SFC_GEN::sfc_visualCallback,this);
-            center_pt_pub = node.advertise<visualization_msgs::Marker>("/center_point", 1,true);
             //增加姿态轨迹
             roll_pub = node.advertise<std_msgs::Float64>("/roll_cmd", 1,true);
             //marker2
-            LastNum=0;
-            marker2.header.frame_id = "world";
-            marker2.header.stamp = ros::Time();
-            marker2.ns = "my_namespace";
-            marker2.id = 0;
-            marker2.type = visualization_msgs::Marker::SPHERE_LIST;
-            marker2.action = visualization_msgs::Marker::ADD;
-            //arker.pose.position.x = 1;
-            //marker2.pose.position.y = 1;
-            //marker2.pose.position.z = 1;
-            marker2.pose.orientation.x = 0.0;
-            marker2.pose.orientation.y = 0.0;
-            marker2.pose.orientation.z = 0.0;
-            marker2.pose.orientation.w = 1.0;
-            marker2.scale.x = 0.4;
-            marker2.scale.y = 0.4;
-            marker2.scale.z = 0.4;
-            marker2.color.a = 1; // Don't forget to set the alpha!
-            marker2.color.r = 0.0;
-            marker2.color.g = 1.0;
-            marker2.color.b = 0.0;
+         
 
         }
 ~SFC_GEN()
@@ -299,6 +278,7 @@ Vec3f center_point ;
                     vec_E<LinearConstraint3D> css = decomp_util.get_constraints();
                     polys.push_back(path_poly[0]);//保存多面体
                     poly_constraints.push_back(css[0]);//保存约束
+                    display_sfc();
                    
 
                     //std::cout<<"=============== A =="<<std::endl<<css[0].A()<<std::endl;
@@ -323,14 +303,15 @@ Vec3f center_point ;
                     vec_E<LinearConstraint3D> css = decomp_util.get_constraints();
                     polys.push_back(path_poly[0]);//保存多面体
                     poly_constraints.push_back(css[0]);//
+                    display_sfc();
                    // std::cout<<"=============== A =="<<std::endl<<css[0].A()<<std::endl;
                    // std::cout<<"=============== b =="<<std::endl<<css[0].b()<<std::endl;
                     
-                    Sphere_Cal((point_now+point_pred)/2,css[0].A(),css[0].b());
+                   // Sphere_Cal((point_now+point_pred)/2,css[0].A(),css[0].b());
                     //int sta = Radius_Cal((point_now+point_pred)/2,css[0].A(),css[0].b());
-                    center_point= (point_now+point_pred)/2;
+                    //center_point= (point_now+point_pred)/2;
                     
-                    std::cout<<"================="<<(point_now+point_pred)/2<<"============="<<std::endl;
+                   // std::cout<<"================="<<(point_now+point_pred)/2<<"============="<<std::endl;
                     //            if(sta>0)//提前终止了
                     //{
                       //      sp_radius.push_back(0.2);
@@ -354,15 +335,6 @@ Vec3f center_point ;
                 poly_msg.header.frame_id = "world";
                 poly_pub.publish(poly_msg);
 
-                //
-                //Vec3f center_pt = (point_now+point_pred)/2;
-                geometry_msgs::Point point;
-                point.x = center_point(0);
-                point.y = center_point(1);
-                point.z = center_point(2);
-                marker2.points.push_back(point);       
-                center_pt_pub.publish(marker2);
-
     }
         void sfc_visualCallback(const ros::TimerEvent &e)
     {
@@ -372,18 +344,11 @@ Vec3f center_point ;
                // ROS_INFO("No poly");
                 return;
             }
-                decomp_ros_msgs::PolyhedronArray poly_msg = DecompROS::polyhedron_array_to_ros(polys);
-                poly_msg.header.frame_id = "world";
-                poly_pub.publish(poly_msg);
+               // decomp_ros_msgs::PolyhedronArray poly_msg = DecompROS::polyhedron_array_to_ros(polys);
+               // poly_msg.header.frame_id = "world";
+               // poly_pub.publish(poly_msg);
 
-                //
-                //Vec3f center_pt = (point_now+point_pred)/2;
-                geometry_msgs::Point point;
-                point.x = center_point(0);
-                point.y = center_point(1);
-                point.z = center_point(2);
-                marker2.points.push_back(point);       
-                center_pt_pub.publish(marker2);
+                /*
                 double gap_width = Sphere_Cal(point_now,(poly_constraints.back()).A(),(poly_constraints.back()).b());
               //  std::cout<<"Gap == "<<gap_width<<std::endl;
                 std_msgs::Float64 roll ;
@@ -392,7 +357,7 @@ Vec3f center_point ;
                  {
                    // std::cout<<"Too Narrow"<<std::endl;
                     return;
-                    /* code */
+                     code 
                  }
                  else if (abs(gap_width)<1.4) 
                  {
@@ -406,7 +371,7 @@ Vec3f center_point ;
                  }
                  roll_pub.publish(roll);
 
-                 
+                 */
 
         return;
     }

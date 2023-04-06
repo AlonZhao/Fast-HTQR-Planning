@@ -665,7 +665,7 @@ void KinodynamicAstar::getSamples(double& ts, vector<Eigen::Vector3d>& point_set
     T_sum += node->duration;
     node = node->parent;
   }
-  cout << "duration:" << T_sum << endl;
+  cout << "duration:" << T_sum << endl;//获得总时间
 
   // Calculate boundary vel and acc
   Eigen::Vector3d end_vel, end_acc;
