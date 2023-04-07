@@ -208,12 +208,13 @@ Quadrotor::operator()(const Quadrotor::InternalState& x,
 }
 
 void
-Quadrotor::setInput(double u1, double u2, double u3, double u4)
+Quadrotor::setInput(double u1, double u2, double u3, double u4,double u5)
 {
   input_(0) = u1;
   input_(1) = u2;
   input_(2) = u3;
   input_(3) = u4;
+  input_servo = u5;
   for (int i = 0; i < 4; i++)
   {
     if (std::isnan(input_(i)))

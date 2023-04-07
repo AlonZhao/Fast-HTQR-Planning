@@ -1,5 +1,8 @@
+#traj_server.cpp
+sub bspline =>pub position_cmd
+
 #so3_control_nodelet.cpp
-sub odom+sub positiong cmd => pub so3command
+sub odom+sub position_cmd => pub so3command
 
 sub pos_cmd->position_cmd_callback
 		->pub so3_cmd

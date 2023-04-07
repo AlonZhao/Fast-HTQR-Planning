@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   uav_utils
   cmake_utils
   tf
+  pose_utils
 )
 
 ###########

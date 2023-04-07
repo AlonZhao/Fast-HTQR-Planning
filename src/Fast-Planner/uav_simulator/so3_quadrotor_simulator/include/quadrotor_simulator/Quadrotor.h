@@ -10,13 +10,14 @@ namespace QuadrotorSimulator
 class Quadrotor
 {
 public:
-  struct State
+  struct State//HTQR扩展
   {
     Eigen::Vector3d x;
     Eigen::Vector3d v;
     Eigen::Matrix3d R;
     Eigen::Vector3d omega;
     Eigen::Array4d  motor_rpm;
+    Eigen::Matrix3d Rb;//HTQR
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
   };
 
@@ -70,7 +71,7 @@ public:
   // 3     4
   //    2
   // with 1 and 2 clockwise and 3 and 4 counter-clockwise (looking from top)
-  void setInput(double u1, double u2, double u3, double u4);
+  void setInput(double u1, double u2, double u3, double u4,double u5);
 
   // Runs the actual dynamics simulation with a time step of dt
   void step(double dt);
@@ -102,6 +103,7 @@ private:
   Eigen::Vector3d acc_;
 
   Eigen::Array4d  input_;
+  double input_servo;
   Eigen::Vector3d external_force_;
   Eigen::Vector3d external_moment_;
 

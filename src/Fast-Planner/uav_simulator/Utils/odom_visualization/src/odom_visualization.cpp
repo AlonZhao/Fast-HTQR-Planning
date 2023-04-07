@@ -454,7 +454,9 @@ int main(int argc, char** argv)
   n.param("covariance_velocity", cov_vel,    false);    
   n.param("covariance_color",    cov_color,  false);    
   
-  ros::Subscriber sub_odom = n.subscribe("odom", 100,  odom_callback);
+  //ros::Subscriber sub_odom = n.subscribe("odom", 100,  odom_callback);
+  
+   ros::Subscriber sub_odom = n.subscribe("/quadrotor_simulator_so3/body_odom_body", 100,  odom_callback);
   ros::Subscriber sub_cmd  = n.subscribe("cmd",  100,  cmd_callback);
   posePub   = n.advertise<geometry_msgs::PoseStamped>("pose",                100, true);
   pathPub   = n.advertise<nav_msgs::Path>(            "path",                100, true);

@@ -94,18 +94,25 @@ SO3Control::calculateControl(const Eigen::Vector3d& des_pos,
 
   orientation_ = Eigen::Quaterniond(R);//获得桨叶平面姿态
   //计算HTQR 机体姿态 与桨叶平面姿态相比只有y轴方向不同
-  Eigen::Vector3d PropellerAngle=R.eulerAngles(2,1,0);
+  
+  //Eigen::Vector3d PropellerAngle=R.eulerAngles(2,1,0);
 
-  Eigen::Vector3d BodyAngle = PropellerAngle;
-  BodyAngle(2) = des_roll;//
+  //Eigen::Vector3d BodyAngle = PropellerAngle;
+ // BodyAngle(2) = des_roll;
 
-  Eigen::AngleAxisd rollAngle(Eigen::AngleAxisd(BodyAngle(2),Eigen::Vector3d::UnitX()));
-  Eigen::AngleAxisd pitchAngle(Eigen::AngleAxisd(BodyAngle(1),Eigen::Vector3d::UnitY()));
-  Eigen::AngleAxisd yawAngle(Eigen::AngleAxisd(BodyAngle(0),Eigen::Vector3d::UnitZ()));
+ // Eigen::AngleAxisd rollAngle(Eigen::AngleAxisd(BodyAngle(2),Eigen::Vector3d::UnitX()));
+  //Eigen::AngleAxisd pitchAngle(Eigen::AngleAxisd(BodyAngle(1),Eigen::Vector3d::UnitY()));
+ // Eigen::AngleAxisd yawAngle(Eigen::AngleAxisd(BodyAngle(0),Eigen::Vector3d::UnitZ()));
  
-  Eigen::Matrix3d Rb;
-  Rb=yawAngle*pitchAngle*rollAngle;
-    orientation_b = Eigen::Quaterniond(Rb);//获得桨叶平面姿态
+  //Eigen::Matrix3d Rb;
+  //Rb=yawAngle*pitchAngle*rollAngle;
+
+  Eigen::Quaterniond qb(0, des_roll, 0, 0);  
+  orientation_b = qb;
+  
+  orientation_b.x()= des_roll;
+ // std::cout<<"#######orientation_bx "<<orientation_b.x()<<std::endl;//right
+
 }
 
 const Eigen::Vector3d&

@@ -61,13 +61,15 @@ private:
 
 void
 SO3ControlNodelet::publishSO3Command(void)
-{
+{//des_roll_---> orientation_b 
   controller_.calculateControl(des_pos_, des_vel_, des_acc_, des_yaw_,des_roll_,//HTQR
                                des_yaw_dot_, kx_, kv_);//微分平坦 计算得到角度orientation_ orientation_b 
 
   const Eigen::Vector3d&    force       = controller_.getComputedForce();
   const Eigen::Quaterniond& orientation = controller_.getComputedOrientation();
+  //orientation_b -->orientationb
   const Eigen::Quaterniond& orientationb = controller_.getComputedOrientationb();
+  //std::cout<<"Quaterniond& orientationb "<<orientationb.x()<<std::endl;  right
 
   quadrotor_msgs::SO3Command::Ptr so3_command(
     new quadrotor_msgs::SO3Command); //! @note memory leak?
@@ -79,12 +81,11 @@ SO3ControlNodelet::publishSO3Command(void)
   so3_command->orientation.x   = orientation.x();
   so3_command->orientation.y   = orientation.y();
   so3_command->orientation.z   = orientation.z();
-  so3_command->orientation.w   = orientation.w();//扩充so3command
-  
+  so3_command->orientation.w   = orientation.w();
+  //借用数据位
+   //orientationb.x -->so3_cmd.orientationb.x 
   so3_command->orientationb.x   = orientationb.x();
-  so3_command->orientationb.y   = orientationb.y();
-  so3_command->orientationb.z   = orientationb.z();
-  so3_command->orientationb.w   = orientationb.w();//扩充so3command
+
   for (int i = 0; i < 3; i++)
   {
     so3_command->kR[i]  = kR_[i];
@@ -96,7 +97,7 @@ SO3ControlNodelet::publishSO3Command(void)
   so3_command->aux.angle_corrections[1] = corrections_[2];
   so3_command->aux.enable_motors        = enable_motors_;
   so3_command->aux.use_external_yaw     = use_external_yaw_;
-  so3_command_pub_.publish(so3_command);//发布command
+  so3_command_pub_.publish(so3_command);//发布command right
 }
 
 void
@@ -116,6 +117,7 @@ SO3ControlNodelet::position_cmd_callback(//HTQR 2
   des_roll_dot_         = cmd->roll_dot;
   position_cmd_updated_ = true;
   position_cmd_init_    = true;
+ // std::cout<<"des_roll_"<<des_roll_<<std::endl;
 
   publishSO3Command();
 }

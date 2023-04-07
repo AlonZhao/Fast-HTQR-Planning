@@ -6,10 +6,11 @@
 #include <sensor_msgs/Imu.h>
 #include <uav_utils/geometry_utils.h>
 #include <tf/transform_broadcaster.h>
-
+#include "pose_utils.h"
 typedef struct _Control
 {
   double rpm[4];
+  double alpha_servo ;//HTQR
 } Control;
 
 typedef struct _Command
@@ -31,7 +32,7 @@ typedef struct _Disturbance
   Eigen::Vector3d m;
 } Disturbance;
 
-static Command     command;
+static Command     command;//全局
 static Disturbance disturbance;
 
 void stateToOdomMsg(const QuadrotorSimulator::Quadrotor::State& state,
@@ -157,6 +158,12 @@ getControl(const QuadrotorSimulator::Quadrotor& quad, const Command& cmd)
 
     control.rpm[i] = sqrtf(w_sq[i]);
   }
+  //HTQR
+  
+  //Eigen::Quaterniond Qb(cmd.qbw,cmd.qbx,cmd.qby,cmd.qbz);
+  //Eigen::Vector3d ypr_b=Qb.matrix().eulerAngles(2,1,0);
+   control.alpha_servo = cmd.qbx;
+  //std::cout<<"control.alpha_servo: "<<control.alpha_servo<<std::endl;
   return control;
 }
 
@@ -182,7 +189,7 @@ cmd_callback(const quadrotor_msgs::SO3Command::ConstPtr& cmd)//HTQR=>simulator c
   command.current_yaw      = cmd->aux.current_yaw;
   command.use_external_yaw = cmd->aux.use_external_yaw;
   //HTQR
-  command.qbx               = cmd->orientationb.x;
+  command.qbx               = cmd->orientationb.x;//HTQR
   command.qby               = cmd->orientationb.y;
   command.qbz               = cmd->orientationb.z;
   command.qbw               = cmd->orientationb.w;
@@ -215,6 +222,9 @@ main(int argc, char** argv)
 
   ros::Publisher  odom_pub = n.advertise<nav_msgs::Odometry>("odom", 100);
   //<remap from="~odom" to="/visual_slam/odom"/>
+
+  //HTQR
+  ros::Publisher  body_odom_pub = n.advertise<nav_msgs::Odometry>("body_odom_body", 100);
   ros::Publisher  imu_pub  = n.advertise<sensor_msgs::Imu>("imu", 10);
   ros::Subscriber cmd_sub =//==>simulator command
     n.subscribe("cmd", 100, &cmd_callback, ros::TransportHints().tcpNoDelay());//<remap from="~cmd" to="so3_cmd"/> 
@@ -253,6 +263,7 @@ main(int argc, char** argv)
   Control control;
 
   nav_msgs::Odometry odom_msg;
+  nav_msgs::Odometry odom_msg_b;
   odom_msg.header.frame_id = "/simulator";
   odom_msg.child_frame_id  = "/" + quad_name;
 
@@ -286,6 +297,7 @@ tf::Transform transform;
     ros::spinOnce();
 
     auto last = control;
+    // control.alpha_servo <---cmd.qbx;
     control   = getControl(quad, command);//
     for (int i = 0; i < 4; ++i)
     {
@@ -293,8 +305,9 @@ tf::Transform transform;
       if (std::isnan(control.rpm[i]))
         control.rpm[i] = last.rpm[i];
     }
+    //-->input_servo
     quad.setInput(control.rpm[0], control.rpm[1], control.rpm[2],
-                  control.rpm[3]);
+                  control.rpm[3],control.alpha_servo);
     quad.setExternalForce(disturbance.f);
     quad.setExternalMoment(disturbance.m);
     quad.step(dt);
@@ -307,11 +320,50 @@ tf::Transform transform;
       odom_msg.header.stamp = tnow;
       state                 = quad.getState();
       stateToOdomMsg(state, odom_msg);
+
+
       quadToImuMsg(quad, imu);
       odom_pub.publish(odom_msg);
+
+
+//--//
+      odom_msg_b = odom_msg;
+      
+      Eigen::Vector3d ypr_t = uav_utils::R_to_ypr(state.R);
+      ypr_t[2]=command.qbx;//借助数据位
+      Eigen::Matrix3d Rb;
+
+      Eigen::AngleAxisd rollAngle(Eigen::AngleAxisd(ypr_t[2], Eigen::Vector3d::UnitX()));
+      Eigen::AngleAxisd pitchAngle(Eigen::AngleAxisd(ypr_t[1], Eigen::Vector3d::UnitY()));
+      Eigen::AngleAxisd yawAngle(Eigen::AngleAxisd(ypr_t[0], Eigen::Vector3d::UnitZ())); 
+      Eigen::Quaterniond qb;
+      qb=yawAngle*pitchAngle*rollAngle;
+
+
+      //uav_utils::ypr_to_R(ypr_t);
+     // mat    eigVec;
+     // R_to_quaternion(Rb);
+
+      //std::cout<<"qb = R_to_quaternion(Rb) "<<qb<<std::endl;
+      //Eigen::Quaterniond q(state.R);
+      
+      
+
+      odom_msg_b.pose.pose.orientation.x = qb.x();
+      odom_msg_b.pose.pose.orientation.y = qb.y();
+      odom_msg_b.pose.pose.orientation.z = qb.z();
+      odom_msg_b.pose.pose.orientation.w = qb.w();
+
+
+      //-----//
+
+
+      body_odom_pub.publish(odom_msg_b);//body pose
       imu_pub.publish(imu);
+    
+    //  std::cout<<"command_qbx"<<command.qbx<<std::endl;//right
     }
-    //for follower tf 当前的位置和方向
+    //for follower tf 当前的位置和方向 可以尝试跟踪odom_msg_b
     transform.setOrigin( tf::Vector3(odom_msg.pose.pose.position.x, odom_msg.pose.pose.position.y, odom_msg.pose.pose.position.z));
     transform.setRotation( tf::Quaternion(odom_msg.pose.pose.orientation.x,odom_msg.pose.pose.orientation.y ,odom_msg.pose.pose.orientation.z, odom_msg.pose.pose.orientation.w) );
     br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", "carrot1"));
@@ -321,6 +373,7 @@ tf::Transform transform;
 
   return 0;
 }
+
 
 void
 stateToOdomMsg(const QuadrotorSimulator::Quadrotor::State& state,
@@ -343,6 +396,8 @@ stateToOdomMsg(const QuadrotorSimulator::Quadrotor::State& state,
   odom.twist.twist.angular.x = state.omega(0);
   odom.twist.twist.angular.y = state.omega(1);
   odom.twist.twist.angular.z = state.omega(2);
+
+
 }
 
 void
