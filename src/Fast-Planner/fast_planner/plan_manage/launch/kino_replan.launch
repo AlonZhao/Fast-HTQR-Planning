@@ -48,7 +48,7 @@
     <arg name="point0_z" value="0.50" />
 
     <!-- set more waypoints if you need -->
-    <arg name="point1_x" value="10.5" />
+    <arg name="point1_x" value="0.0" />
     <arg name="point1_y" value="0.0" />
     <arg name="point1_z" value="1.0" />
 

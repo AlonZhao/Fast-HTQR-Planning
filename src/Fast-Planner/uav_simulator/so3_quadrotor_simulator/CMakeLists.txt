@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_utils
   tf
   pose_utils
+  #HTQR use
 )
 
 ###########
@@ -27,8 +28,9 @@ include_directories(${ARMADILLO_INCLUDE_DIRS})
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES irobot_msgs
-  CATKIN_DEPENDS roscpp quadrotor_msgs uav_utils
+  CATKIN_DEPENDS roscpp quadrotor_msgs uav_utils 
   DEPENDS Eigen3 system_lib
+
 )
 
 include_directories(include)

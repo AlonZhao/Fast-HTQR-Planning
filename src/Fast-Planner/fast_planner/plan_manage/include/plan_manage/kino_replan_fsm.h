@@ -90,18 +90,19 @@ private:
   bool trigger_, have_target_, have_odom_;
   FSM_EXEC_STATE exec_state_;
 
-  Eigen::Vector3d odom_pos_, odom_vel_;  // odometry state
+  Eigen::Vector3d odom_pos_, odom_vel_,body_odom_pos_;  // odometry state
   Eigen::Quaterniond odom_orient_;
-
+  Eigen::Quaterniond body_odom_orient_;
   Eigen::Vector3d start_pt_, start_vel_, start_acc_, start_yaw_;  // start state
   Eigen::Vector3d end_pt_, end_vel_;                              // target state
   int current_wp_;
 
   /* ROS utils */
   ros::NodeHandle node_;
-  ros::Timer exec_timer_, safety_timer_, vis_timer_, test_something_timer_;
-  ros::Subscriber waypoint_sub_, odom_sub_;
+  ros::Timer exec_timer_, safety_timer_, vis_timer_, test_something_timer_, roll_check_timer;
+  ros::Subscriber waypoint_sub_, odom_sub_,body_odom_sub_;
   ros::Publisher replan_pub_, new_pub_, bspline_pub_;
+  ros::Publisher left_right_pub_; 
 
   /* helper functions */
   bool callKinodynamicReplan();        // front-end and back-end method
@@ -113,9 +114,11 @@ private:
   /* ROS functions  主要的回调函数*/
   void execFSMCallback(const ros::TimerEvent& e);//包含上次和本次的期望回调时间 实际回调时间
   void checkCollisionCallback(const ros::TimerEvent& e);//碰撞检测
+  //HTQR
+  void roll_CheckCallback(const ros::TimerEvent& e);
   void waypointCallback(const nav_msgs::PathConstPtr& msg);//包含位置和姿态 获取目标点 触发回调函数 设置状态机
   void odometryCallback(const nav_msgs::OdometryConstPtr& msg);//包含位置姿态以及协方差  感知数据的信息 设置标志位
-
+  void bodyodometryCallback(const nav_msgs::OdometryConstPtr& msg);
 public:
   KinoReplanFSM(/* args */) {
   }

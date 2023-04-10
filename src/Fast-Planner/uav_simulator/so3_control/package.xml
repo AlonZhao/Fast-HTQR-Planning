@@ -20,12 +20,15 @@
   <build_depend>nodelet</build_depend>
   <build_depend>cmake_utils</build_depend>
 
+  
+  <build_depend>plan_env</build_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>nav_msgs</run_depend>
   <run_depend>quadrotor_msgs</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>nodelet</run_depend>
   <run_depend>cmake_utils</run_depend>
+  <run_depend>plan_env</run_depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelet_plugin.xml"/>

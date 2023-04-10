@@ -55,6 +55,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   nodelet
   cmake_utils
+  plan_env
+  
 )
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 ## System dependencies are found with CMake's conventions
@@ -133,7 +135,8 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES irobot_msgs
-#  CATKIN_DEPENDS geometry_msgs nav_msgs
+  CATKIN_DEPENDS plan_env 
+
 #  DEPENDS system_lib
 )
 
@@ -143,7 +146,9 @@ catkin_package(
 #find_package(Armadillo REQUIRED)
 #include_directories(${ARMADILLO_INCLUDE_DIRS})
 
-find_package(Eigen3 REQUIRED)
+find_package(Eigen3 REQUIRED
+              
+)
 
 include_directories(${EIGEN3_INCLUDE_DIR})
 
@@ -163,11 +168,13 @@ include_directories(
 ## Declare a cpp executable
 #add_executable(odom_visualization src/odom_visualization.cpp)
 add_library(SO3Control src/SO3Control.cpp)
+#add_library(so3_env Fast-Planner/fast_planner/plan_env/src/edt_environment.cpp)
 add_library(so3_control_nodelet src/so3_control_nodelet.cpp)
 
 target_link_libraries(so3_control_nodelet 
     ${catkin_LIBRARIES}
     SO3Control
+    
 )
 
 ## Add cmake target dependencies of the executable/library

@@ -26,6 +26,7 @@
 
 #include <ostream>
 #include <plan_manage/kino_replan_fsm.h>
+#include "std_msgs/Float64MultiArray.h"
 
 
 namespace fast_planner {
@@ -56,14 +57,22 @@ void KinoReplanFSM::init(ros::NodeHandle& nh) {
   /* callback 设置执行时间间隔和安全检测时间间隔*/
   exec_timer_   = nh.createTimer(ros::Duration(0.01), &KinoReplanFSM::execFSMCallback, this);
   safety_timer_ = nh.createTimer(ros::Duration(0.05), &KinoReplanFSM::checkCollisionCallback, this);
-
+ //HTQR
+ roll_check_timer = nh.createTimer(ros::Duration(0.05), &KinoReplanFSM::roll_CheckCallback, this);
+ //HTQR
   waypoint_sub_ =
       nh.subscribe("/waypoint_generator/waypoints", 1, &KinoReplanFSM::waypointCallback, this);
   odom_sub_ = nh.subscribe("/odom_world", 1, &KinoReplanFSM::odometryCallback, this);
+  body_odom_sub_ = nh.subscribe("/quadrotor_simulator_so3/body_odom_body", 1, &KinoReplanFSM::bodyodometryCallback, this);
+
+  
+ 
+
 
   replan_pub_  = nh.advertise<std_msgs::Empty>("/planning/replan", 10);
   new_pub_     = nh.advertise<std_msgs::Empty>("/planning/new", 10);
   bspline_pub_ = nh.advertise<plan_manage::Bspline>("/planning/bspline", 10);
+  left_right_pub_ = nh.advertise<std_msgs::Float64MultiArray>("/HTQR/left_right", 10);
 }
 
 void KinoReplanFSM::waypointCallback(const nav_msgs::PathConstPtr& msg) {
@@ -108,7 +117,17 @@ void KinoReplanFSM::odometryCallback(const nav_msgs::OdometryConstPtr& msg) {
 
   have_odom_ = true;
 }
+void KinoReplanFSM::bodyodometryCallback(const nav_msgs::OdometryConstPtr& msg)
+{
+  body_odom_pos_(0) = msg->pose.pose.position.x;
+  body_odom_pos_(1) = msg->pose.pose.position.y;
+  body_odom_pos_(2) = msg->pose.pose.position.z;
 
+  body_odom_orient_.w() = msg->pose.pose.orientation.w;
+  body_odom_orient_.x() = msg->pose.pose.orientation.x;
+  body_odom_orient_.y() = msg->pose.pose.orientation.y;
+  body_odom_orient_.z() = msg->pose.pose.orientation.z;
+}
 void KinoReplanFSM::changeFSMExecState(FSM_EXEC_STATE new_state, string pos_call) {
   string state_str[5] = { "INIT", "WAIT_TARGET", "GEN_NEW_TRAJ", "REPLAN_TRAJ", "EXEC_TRAJ" };
   int    pre_s        = int(exec_state_);
@@ -163,7 +182,7 @@ void KinoReplanFSM::execFSMCallback(const ros::TimerEvent& e) {//10Hz
       start_pt_  = odom_pos_;
       start_vel_ = odom_vel_;
       start_acc_.setZero();
-
+//四元数  旋转矩阵
       Eigen::Vector3d rot_x = odom_orient_.toRotationMatrix().block(0, 0, 3, 1);
       start_yaw_(0)         = atan2(rot_x(1), rot_x(0));
       start_yaw_(1) = start_yaw_(2) = 0.0;
@@ -238,7 +257,45 @@ void KinoReplanFSM::execFSMCallback(const ros::TimerEvent& e) {//10Hz
     }
   }
 }
+void KinoReplanFSM::roll_CheckCallback(const ros::TimerEvent& e){
+  LocalTrajData* info = &planner_manager_->local_data_;
+  if (have_target_) {
+  Eigen::Matrix3d Rb= body_odom_orient_.toRotationMatrix();
 
+
+   double wing_width = 0.25;
+  const Eigen::Vector3d wing_right(0,-wing_width,0);
+  const Eigen::Vector3d wing_left(0,wing_width,0);
+
+  Eigen::Vector3d wing_right_esdf =   Rb*wing_right + body_odom_pos_;
+  Eigen::Vector3d wing_left_esdf =   Rb*wing_left + body_odom_pos_;
+
+
+  double right_dist;
+  double left_dist;
+  Eigen::Vector3d right_grad;
+  Eigen::Vector3d left_grad;
+
+  auto edt_env = planner_manager_->edt_environment_;
+  edt_env->evaluateEDTWithGrad(wing_right_esdf, -1.0, right_dist, right_grad);
+  edt_env->evaluateEDTWithGrad(wing_left_esdf, -1.0, left_dist, left_grad);
+
+//-----pub---//
+  std_msgs::Float64MultiArray msg;
+  msg.data.push_back(wing_left_esdf(0));
+  msg.data.push_back(wing_left_esdf(1));
+  msg.data.push_back(wing_left_esdf(2));
+
+  msg.data.push_back(wing_right_esdf(0));
+  msg.data.push_back(wing_right_esdf(1));
+  msg.data.push_back(wing_right_esdf(2));
+
+
+  left_right_pub_.publish(msg);
+  //std::cout<<"right_grad:="<<wing_right_esdf<<std::endl;
+   //写上1会报错
+    }
+}
 void KinoReplanFSM::checkCollisionCallback(const ros::TimerEvent& e) {
   LocalTrajData* info = &planner_manager_->local_data_;
 

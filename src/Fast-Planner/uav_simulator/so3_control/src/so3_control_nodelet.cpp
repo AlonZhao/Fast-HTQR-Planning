@@ -9,6 +9,10 @@
 #include <so3_control/SO3Control.h>
 #include <std_msgs/Bool.h>
 #include <tf/transform_datatypes.h>
+#include "tf/LinearMath/Transform.h"//
+//HTQR
+
+#include <plan_env/edt_environment.h>
 
 class SO3ControlNodelet : public nodelet::Nodelet
 {
@@ -34,13 +38,20 @@ private:
   void position_cmd_callback(
     const quadrotor_msgs::PositionCommand::ConstPtr& cmd);
   void odom_callback(const nav_msgs::Odometry::ConstPtr& odom);
+  //HTQR
+   void body_odom_callback(const nav_msgs::Odometry::ConstPtr& odom);
   void enable_motors_callback(const std_msgs::Bool::ConstPtr& msg);
   void corrections_callback(const quadrotor_msgs::Corrections::ConstPtr& msg);
   void imu_callback(const sensor_msgs::Imu& imu);
+  //void SimsetEnvironment(const EDTEnvironment::Ptr& env) {
+ // this->edt_environment_ = env;
+//}
 
   SO3Control      controller_;
   ros::Publisher  so3_command_pub_;
+
   ros::Subscriber odom_sub_;
+  ros::Subscriber body_odom_sub_;
   ros::Subscriber position_cmd_sub_;
   ros::Subscriber enable_motors_sub_;
   ros::Subscriber corrections_sub_;
@@ -57,6 +68,7 @@ private:
   bool            enable_motors_;
   bool            use_external_yaw_;
   double          kR_[3], kOm_[3], corrections_[3];
+  //fast_planner::EDTEnvironment::Ptr edt_environment_;
 };
 
 void
@@ -99,6 +111,8 @@ SO3ControlNodelet::publishSO3Command(void)
   so3_command->aux.use_external_yaw     = use_external_yaw_;
   so3_command_pub_.publish(so3_command);//发布command right
 }
+
+
 
 void
 SO3ControlNodelet::position_cmd_callback(//HTQR 2
@@ -149,8 +163,66 @@ SO3ControlNodelet::odom_callback(const nav_msgs::Odometry::ConstPtr& odom)
       publishSO3Command();
     position_cmd_updated_ = false;
   }
+
+
+
 }
 
+//HTQR
+void
+SO3ControlNodelet::body_odom_callback(const nav_msgs::Odometry::ConstPtr& odom) 
+{
+  const Eigen::Vector3d position(odom->pose.pose.position.x,
+                                 odom->pose.pose.position.y,
+                                 odom->pose.pose.position.z);
+  const Eigen::Vector3d velocity(odom->twist.twist.linear.x,
+                                 odom->twist.twist.linear.y,
+                                 odom->twist.twist.linear.z);
+  current_yaw_ = tf::getYaw(odom->pose.pose.orientation);
+  
+  Eigen::Quaterniond Qb(odom->pose.pose.orientation.w,
+  odom->pose.pose.orientation.x,
+  odom->pose.pose.orientation.y,
+  odom->pose.pose.orientation.z);
+  Eigen::Matrix3d Rb;
+  Rb=Qb.matrix();
+  double wing_width = 0.25;
+  const Eigen::Vector3d wing_right(0,-wing_width,0);
+  const Eigen::Vector3d wing_left(0,wing_width,0);
+  Eigen::Vector3d wing_left_esdf =   Rb*wing_left + position;
+  Eigen::Vector3d wing_right_esdf =  Rb*wing_right + position;
+  //获得梯度信息
+  double      dist;
+  Eigen::Vector3d right_grad;
+  //edt_environment_->evaluateEDTWithGrad(wing_right_esdf, -1.0, dist, right_grad);
+  //std::cout<<"right_grad  "<<right_grad.transpose()<<std::endl;
+  //向量向heading法平面投影
+
+  //std::cout<<"wing_left_esdf "<<wing_left_esdf.transpose()<<std::endl<<
+  //"wing_right_esdf "<<wing_right_esdf.transpose()<<std::endl;
+  
+ // double useless_pitch;z
+  //tf::Matrix3x3::Matrix3x3(odom->pose.pose.orientation).getRPY( current_roll_, useless_pitch,current_yaw_);
+  //current_yaw_ = tf::getYaw(odom->pose.pose.orientation);
+
+//  controller_.setPosition(position);
+  //controller_.setVelocity(velocity);
+  //right
+  //std::cout<<"current_roll_ = "<<current_roll_<<"current_yaw_  "<<current_yaw_<<std::endl;
+
+  if (position_cmd_init_)
+  {
+    // We set position_cmd_updated_ = false and expect that the
+    // position_cmd_callback would set it to true since typically a position_cmd
+    // message would follow an odom message. If not, the position_cmd_callback
+    // hasn't been called and we publish the so3 command ourselves
+    // TODO: Fallback to hover if position_cmd hasn't been received for some
+    // time
+    if (!position_cmd_updated_)
+      //publishSO3Command();
+    position_cmd_updated_ = false;
+  }
+}
 void
 SO3ControlNodelet::enable_motors_callback(const std_msgs::Bool::ConstPtr& msg)
 {
@@ -209,6 +281,9 @@ SO3ControlNodelet::onInit(void)
   so3_command_pub_ = n.advertise<quadrotor_msgs::SO3Command>("so3_cmd", 10);//output HTQR 
 
   odom_sub_ = n.subscribe("odom", 10, &SO3ControlNodelet::odom_callback, this,
+                          ros::TransportHints().tcpNoDelay());
+                          //HTQR
+  body_odom_sub_ = n.subscribe("/quadrotor_simulator_so3/body_odom_body", 10, &SO3ControlNodelet::body_odom_callback, this,
                           ros::TransportHints().tcpNoDelay());
   position_cmd_sub_ =
     n.subscribe("position_cmd", 10, &SO3ControlNodelet::position_cmd_callback,
