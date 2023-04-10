@@ -255,7 +255,7 @@ void cmdCallback(const ros::TimerEvent& e) {
 
   cmd.yaw = yaw;
   cmd.yaw_dot = yawdot;
-  cmd.roll = 0.4;
+  cmd.roll = 0.0;
   cmd.roll_dot = 0;//HTQR source
 
   auto pos_err = pos_f - pos;

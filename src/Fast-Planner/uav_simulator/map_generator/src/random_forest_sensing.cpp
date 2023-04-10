@@ -179,7 +179,7 @@ void NarrowPassage() {
 
     double x, y, w, h;
     x = 0;
-    y = -1.5;
+    y = -0.3;
     w = 2;
 
     x = floor(x / _resolution) * _resolution + _resolution / 2.0;
@@ -199,28 +199,26 @@ void NarrowPassage() {
           cloudMap.points.push_back(pt_random);
         }
       }
-  
+  //左侧
     x = 0;
-    y = 1.5;
+    y = 0.5;
     w = 1;
 
     x = floor(x / _resolution) * _resolution + _resolution / 2.0;
     y = floor(y / _resolution) * _resolution + _resolution / 2.0;
 
 
-
     for (int r = -widNum / 2.0; r < widNum / 2.0; r++)
       for (int s = -widNum / 2.0; s < widNum / 2.0; s++) {
         h = 2;
         int heiNum = ceil(h / _resolution);
-        for (int t = 0; t < heiNum; t++) {
+        for (int t = 0; t < s+widNum / 2.0; t++) {
           pt_random.x = x + (r + 0.5) * _resolution + 1e-2;
           pt_random.y = y + (s + 0.5) * _resolution + 1e-2;
           pt_random.z = (t + 0.5) * _resolution + 1e-2;
           cloudMap.points.push_back(pt_random);
         }
       }
-
 
   // generate circle obs
   

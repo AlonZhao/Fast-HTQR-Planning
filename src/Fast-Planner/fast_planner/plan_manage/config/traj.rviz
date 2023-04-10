@@ -165,13 +165,13 @@ Visualization Manager:
     - Class: rviz/Group
       Displays:
         - Class: rviz/Marker
-          Enabled: true
+          Enabled: false
           Marker Topic: /planning_vis/trajectory
           Name: bspline_traj
           Namespaces:
-            "": true
+            {}
           Queue Size: 100
-          Value: true
+          Value: false
         - Class: rviz/Marker
           Enabled: false
           Marker Topic: /planning_vis/topo_path
@@ -368,7 +368,7 @@ Visualization Manager:
       Marker Topic: /center_point
       Name: Marker
       Namespaces:
-        my_namespace: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -397,23 +397,25 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz/FPS
+      Class: rviz/FrameAligned
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Invert Z Axis: false
+      Lock Camera: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4749998450279236
+      Pitch: 0.034999970346689224
+      Point towards: arbitrary
       Position:
-        X: -2.848292827606201
-        Y: -0.09341998398303986
-        Z: 2.0544023513793945
+        X: -1.2048403024673462
+        Y: 0.05030469968914986
+        Z: 0.29012811183929443
       Roll: 0
       Target Frame: carrot1
-      Yaw: 0
+      Yaw: -0.04999999329447746
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 17.48538589477539
@@ -511,5 +513,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1146
-  X: 505
-  Y: 128
+  X: 317
+  Y: 214

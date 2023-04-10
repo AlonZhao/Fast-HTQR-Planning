@@ -259,7 +259,7 @@ void KinoReplanFSM::execFSMCallback(const ros::TimerEvent& e) {//10Hz
 }
 void KinoReplanFSM::roll_CheckCallback(const ros::TimerEvent& e){
   LocalTrajData* info = &planner_manager_->local_data_;
-  if (have_target_) {
+  
   Eigen::Matrix3d Rb= body_odom_orient_.toRotationMatrix();
 
 
@@ -279,7 +279,39 @@ void KinoReplanFSM::roll_CheckCallback(const ros::TimerEvent& e){
   auto edt_env = planner_manager_->edt_environment_;
   edt_env->evaluateEDTWithGrad(wing_right_esdf, -1.0, right_dist, right_grad);
   edt_env->evaluateEDTWithGrad(wing_left_esdf, -1.0, left_dist, left_grad);
+  double roll_cmd_;
 
+  //梯度在截面的投影
+  Eigen::Vector3d right_grad_proj(0,0,0);
+  Eigen::Vector3d left_grad_proj(0,0,0);
+  Eigen::Vector3d rot_y =Rb.block(0, 1, 3, 1);
+  Eigen::Vector3d rot_z =Rb.block(0, 2, 3, 1);
+  right_grad_proj(1) = right_grad.dot(rot_y);
+  right_grad_proj(2) = right_grad.dot(rot_z);
+  
+  left_grad_proj(1) = left_grad.dot(rot_y);
+  left_grad_proj(2) = left_grad.dot(rot_z);
+  double roll_ref = atan2(right_grad_proj(1),right_grad_proj(2));
+    if (left_dist>0&&right_dist>0)
+  {
+    roll_cmd_ = 0;
+  }
+  else if(abs(roll_ref)>1)//vertical
+  {
+    double right_roll = acos(1-abs(right_dist)/wing_width);
+    double left_roll = acos(1-abs(left_dist)/wing_width);
+    roll_cmd_ = max(right_roll,left_roll);
+   
+    std::cout<<"2222"<<std::endl;
+
+    
+  }else
+  {
+      roll_cmd_ = roll_ref-3.1415926/2;
+      std::cout<<"33333"<<std::endl;
+  }
+  std::cout<<"###roll_cmd_ = "<<roll_cmd_<<std::endl;
+  std::cout<<"###right_grad:="<<right_grad_proj.transpose()<<std::endl;
 //-----pub---//
   std_msgs::Float64MultiArray msg;
   msg.data.push_back(wing_left_esdf(0));
@@ -289,12 +321,10 @@ void KinoReplanFSM::roll_CheckCallback(const ros::TimerEvent& e){
   msg.data.push_back(wing_right_esdf(0));
   msg.data.push_back(wing_right_esdf(1));
   msg.data.push_back(wing_right_esdf(2));
-
-
   left_right_pub_.publish(msg);
   //std::cout<<"right_grad:="<<wing_right_esdf<<std::endl;
    //写上1会报错
-    }
+
 }
 void KinoReplanFSM::checkCollisionCallback(const ros::TimerEvent& e) {
   LocalTrajData* info = &planner_manager_->local_data_;
