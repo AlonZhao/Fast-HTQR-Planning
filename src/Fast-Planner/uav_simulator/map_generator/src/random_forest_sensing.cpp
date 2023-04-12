@@ -179,7 +179,7 @@ void NarrowPassage() {
 
     double x, y, w, h;
     x = 0;
-    y = -0.3;
+    y = -0.6;
     w = 2;
 
     x = floor(x / _resolution) * _resolution + _resolution / 2.0;
@@ -188,7 +188,7 @@ void NarrowPassage() {
     int widNum = ceil(w / _resolution);
    // int h_start;
 
-    for (int r = -widNum / 2.0; r < widNum / 2.0; r++)
+    for (int r = -2*widNum / 2.0; r < 2*widNum / 2.0; r++)
       for (int s = -widNum / 2.0; s < widNum / 2.0; s++) {
         h = 2;
         int heiNum = ceil(h / _resolution);
@@ -201,14 +201,14 @@ void NarrowPassage() {
       }
   //左侧
     x = 0;
-    y = 0.5;
+    y = 1.4;
     w = 1;
 
     x = floor(x / _resolution) * _resolution + _resolution / 2.0;
     y = floor(y / _resolution) * _resolution + _resolution / 2.0;
 
 
-    for (int r = -widNum / 2.0; r < widNum / 2.0; r++)
+    for (int r = -2*widNum / 2.0; r < 2*widNum / 2.0; r++)
       for (int s = -widNum / 2.0; s < widNum / 2.0; s++) {
         h = 2;
         int heiNum = ceil(h / _resolution);

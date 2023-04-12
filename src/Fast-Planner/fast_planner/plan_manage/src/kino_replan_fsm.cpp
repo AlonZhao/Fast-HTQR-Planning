@@ -31,6 +31,7 @@
 
 namespace fast_planner {
 
+
 void KinoReplanFSM::init(ros::NodeHandle& nh) {
   current_wp_  = 0;
   exec_state_  = FSM_EXEC_STATE::INIT;
@@ -58,8 +59,8 @@ void KinoReplanFSM::init(ros::NodeHandle& nh) {
   exec_timer_   = nh.createTimer(ros::Duration(0.01), &KinoReplanFSM::execFSMCallback, this);
   safety_timer_ = nh.createTimer(ros::Duration(0.05), &KinoReplanFSM::checkCollisionCallback, this);
  //HTQR
- roll_check_timer = nh.createTimer(ros::Duration(0.05), &KinoReplanFSM::roll_CheckCallback, this);
- //HTQR
+  roll_check_timer = nh.createTimer(ros::Duration(0.05), &KinoReplanFSM::roll_CheckCallback, this);
+ 
   waypoint_sub_ =
       nh.subscribe("/waypoint_generator/waypoints", 1, &KinoReplanFSM::waypointCallback, this);
   odom_sub_ = nh.subscribe("/odom_world", 1, &KinoReplanFSM::odometryCallback, this);
@@ -263,9 +264,9 @@ void KinoReplanFSM::roll_CheckCallback(const ros::TimerEvent& e){
   Eigen::Matrix3d Rb= body_odom_orient_.toRotationMatrix();
 
 
-   double wing_width = 0.25;
-  const Eigen::Vector3d wing_right(0,-wing_width,0);
-  const Eigen::Vector3d wing_left(0,wing_width,0);
+   double wing_width = 1.0;
+  const Eigen::Vector3d wing_right(0.05,-wing_width,0);
+  const Eigen::Vector3d wing_left(0.05,wing_width,0);
 
   Eigen::Vector3d wing_right_esdf =   Rb*wing_right + body_odom_pos_;
   Eigen::Vector3d wing_left_esdf =   Rb*wing_left + body_odom_pos_;
@@ -279,7 +280,7 @@ void KinoReplanFSM::roll_CheckCallback(const ros::TimerEvent& e){
   auto edt_env = planner_manager_->edt_environment_;
   edt_env->evaluateEDTWithGrad(wing_right_esdf, -1.0, right_dist, right_grad);
   edt_env->evaluateEDTWithGrad(wing_left_esdf, -1.0, left_dist, left_grad);
-  double roll_cmd_;
+
 
   //梯度在截面的投影
   Eigen::Vector3d right_grad_proj(0,0,0);
@@ -291,27 +292,34 @@ void KinoReplanFSM::roll_CheckCallback(const ros::TimerEvent& e){
   
   left_grad_proj(1) = left_grad.dot(rot_y);
   left_grad_proj(2) = left_grad.dot(rot_z);
-  double roll_ref = atan2(right_grad_proj(1),right_grad_proj(2));
-    if (left_dist>0&&right_dist>0)
+
+    if (right_dist>-0.001||abs(right_grad_proj(1))<0.01)//left_dist>0&&
   {
-    roll_cmd_ = 0;
+    //roll_cmd_fsm = 0;
+    std::cout<<"right_grad:="<<right_grad_proj<<std::endl;
+    std::cout<<"right_dist:="<<right_dist<<std::endl;
   }
-  else if(abs(roll_ref)>1)//vertical
+  else if(abs(atan(right_grad_proj(2)/right_grad_proj(1)))>1.2)//vertical
   {
+    double roll_ref = - atan(right_grad_proj(2)/right_grad_proj(1));
     double right_roll = acos(1-abs(right_dist)/wing_width);
-    double left_roll = acos(1-abs(left_dist)/wing_width);
-    roll_cmd_ = max(right_roll,left_roll);
+   // double left_roll = acos(1-abs(left_dist)/wing_width);
+    //roll_cmd_fsm = max(right_roll,left_roll);
+    roll_cmd_fsm = right_roll;
    
     std::cout<<"2222"<<std::endl;
+    std::cout<<"###roll_cmd_fsm = "<<roll_cmd_fsm<<std::endl;
 
     
   }else
   {
-      roll_cmd_ = roll_ref-3.1415926/2;
+     double roll_ref =  - atan(right_grad_proj(2)/right_grad_proj(1));
+      roll_cmd_fsm =  0;//roll_ref;
       std::cout<<"33333"<<std::endl;
+      std::cout<<"###roll_cmd_fsm = "<<roll_cmd_fsm<<std::endl;
   }
-  std::cout<<"###roll_cmd_ = "<<roll_cmd_<<std::endl;
-  std::cout<<"###right_grad:="<<right_grad_proj.transpose()<<std::endl;
+  
+  
 //-----pub---//
   std_msgs::Float64MultiArray msg;
   msg.data.push_back(wing_left_esdf(0));
@@ -321,6 +329,10 @@ void KinoReplanFSM::roll_CheckCallback(const ros::TimerEvent& e){
   msg.data.push_back(wing_right_esdf(0));
   msg.data.push_back(wing_right_esdf(1));
   msg.data.push_back(wing_right_esdf(2));
+
+  msg.data.push_back(roll_cmd_fsm);
+
+  
   left_right_pub_.publish(msg);
   //std::cout<<"right_grad:="<<wing_right_esdf<<std::endl;
    //写上1会报错

@@ -12,6 +12,7 @@ Panels:
         - /Mapping1/simulation_map1/Autocompute Value Bounds1
         - /PolyhedronArray1
         - /Marker1
+        - /Marker2
       Splitter Ratio: 0.5
     Tree Height: 296
   - Class: rviz/Selection
@@ -193,7 +194,7 @@ Visualization Manager:
           Marker Topic: /planning/position_cmd_vis
           Name: position_cmd
           Namespaces:
-            "": true
+            {}
           Queue Size: 100
           Value: true
       Enabled: true
@@ -371,6 +372,14 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /HTQR/wing
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 255; 253; 224
@@ -514,4 +523,4 @@ Window Geometry:
     collapsed: false
   Width: 1146
   X: 317
-  Y: 214
+  Y: 177

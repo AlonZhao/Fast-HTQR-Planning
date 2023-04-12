@@ -48,6 +48,7 @@ using std::vector;
 
 namespace fast_planner {
 
+
 class Test {
 private:
   /* data */
@@ -96,6 +97,7 @@ private:
   Eigen::Vector3d start_pt_, start_vel_, start_acc_, start_yaw_;  // start state
   Eigen::Vector3d end_pt_, end_vel_;                              // target state
   int current_wp_;
+  double roll_cmd_fsm ;//HTQR
 
   /* ROS utils */
   ros::NodeHandle node_;
@@ -121,6 +123,9 @@ private:
   void bodyodometryCallback(const nav_msgs::OdometryConstPtr& msg);
 public:
   KinoReplanFSM(/* args */) {
+    roll_cmd_fsm = 0;
+
+
   }
   ~KinoReplanFSM() {
   }

@@ -30,11 +30,13 @@
 #include "std_msgs/Empty.h"
 #include "visualization_msgs/Marker.h"
 #include <ros/ros.h>
+#include "std_msgs/Float64MultiArray.h"
 
 ros::Publisher cmd_vis_pub, pos_cmd_pub, traj_pub;
 //增加一个话题
 ros::Publisher pos_predict_cmd_pub;
-
+//增加一个话题
+ros::Publisher wing_pub;
 nav_msgs::Odometry odom;
 
 quadrotor_msgs::PositionCommand cmd;
@@ -54,9 +56,47 @@ int traj_id_;
 // yaw control
 double last_yaw_;
 double time_forward_;
+double roll_cmd_;
 
-vector<Eigen::Vector3d> traj_cmd_, traj_real_;
+vector<Eigen::Vector3d> traj_cmd_, traj_real_, right_wing, left_wing;
+void draw_wing(vector<Eigen::Vector3d> path, double resolution, Eigen::Vector4d color,
+                          int id)
+  {
+  visualization_msgs::Marker mk;
+  mk.header.frame_id = "world";
 
+  mk.header.stamp = ros::Time::now();
+  mk.type = visualization_msgs::Marker::SPHERE_LIST;
+  mk.action = visualization_msgs::Marker::DELETE;
+  mk.id = id;
+
+  wing_pub.publish(mk);
+
+  mk.action = visualization_msgs::Marker::ADD;
+  mk.pose.orientation.x = 0.0;
+  mk.pose.orientation.y = 0.0;
+  mk.pose.orientation.z = 0.0;
+  mk.pose.orientation.w = 1.0;
+
+  mk.color.r = color(0);
+  mk.color.g = color(1);
+  mk.color.b = color(2);
+  mk.color.a = color(3);
+
+  mk.scale.x = resolution;
+  mk.scale.y = resolution;
+  mk.scale.z = resolution;
+
+  geometry_msgs::Point pt;
+  for (int i = 0; i < int(path.size()); i++) {
+    pt.x = path[i](0);
+    pt.y = path[i](1);
+    pt.z = path[i](2);
+    mk.points.push_back(pt);
+  }
+  wing_pub.publish(mk);
+  ros::Duration(0.001).sleep();
+  }
 void displayTrajWithColor(vector<Eigen::Vector3d> path, double resolution, Eigen::Vector4d color,
                           int id) {
   visualization_msgs::Marker mk;
@@ -182,7 +222,31 @@ void newCallback(std_msgs::Empty msg) {
   traj_cmd_.clear();
   traj_real_.clear();
 }
+void HTQRCallbck(const std_msgs::Float64MultiArray msg)
+{
+  if (!receive_traj_) return;
+roll_cmd_ = msg.data.at(6);
+ Eigen::Vector3d right_pos;
+ Eigen::Vector3d left_pos;
 
+
+ left_pos(0) = msg.data.at(0);
+ left_pos(1) = msg.data.at(1);
+ left_pos(2) = msg.data.at(2);
+
+ right_pos(0) = msg.data.at(3);
+ right_pos(1) = msg.data.at(4);
+ right_pos(2) = msg.data.at(5);
+
+// left_pos<<0,1,1;
+// right_pos<<0,-1,1;
+ left_wing.push_back(left_pos);
+ right_wing.push_back(right_pos);
+  if (right_wing.size() > 1000) right_wing.erase(right_wing.begin(), right_wing.begin() + 1000);
+  if (left_wing.size() > 1000) left_wing.erase(left_wing.begin(), left_wing.begin() + 1000);
+
+
+}
 void odomCallbck(const nav_msgs::Odometry& msg) {
   if (msg.child_frame_id == "X" || msg.child_frame_id == "O") return;
 
@@ -200,6 +264,10 @@ void visCallback(const ros::TimerEvent& e) {
   //                      1);
 
   displayTrajWithColor(traj_cmd_, 0.05, Eigen::Vector4d(0, 1, 0, 1), 2);
+  std::cout<<"right_wing"<<right_wing.size()<<std::endl;
+  draw_wing(right_wing,0.05, Eigen::Vector4d(1, 0, 0, 1),5);
+  draw_wing(left_wing,0.05, Eigen::Vector4d(0, 0, 1, 1),4);
+
 }
 
 void cmdCallback(const ros::TimerEvent& e) {
@@ -255,7 +323,7 @@ void cmdCallback(const ros::TimerEvent& e) {
 
   cmd.yaw = yaw;
   cmd.yaw_dot = yawdot;
-  cmd.roll = 0.0;
+  cmd.roll = roll_cmd_;
   cmd.roll_dot = 0;//HTQR source
 
   auto pos_err = pos_f - pos;
@@ -281,6 +349,7 @@ void cmdCallback(const ros::TimerEvent& e) {
 
   traj_cmd_.push_back(pos);
   if (traj_cmd_.size() > 10000) traj_cmd_.erase(traj_cmd_.begin(), traj_cmd_.begin() + 1000);
+  
 }
 
 void PredictcmdCallback(const ros::TimerEvent& e) {
@@ -374,6 +443,8 @@ int main(int argc, char** argv) {
   ros::Subscriber replan_sub = node.subscribe("planning/replan", 10, replanCallback);
   ros::Subscriber new_sub = node.subscribe("planning/new", 10, newCallback);
   ros::Subscriber odom_sub = node.subscribe("/odom_world", 50, odomCallbck);
+  //增加订阅话题
+  ros::Subscriber HTQR_sub = node.subscribe("/HTQR/left_right", 50, HTQRCallbck);
 
   //订阅sfc返回的数据
 
@@ -382,11 +453,12 @@ int main(int argc, char** argv) {
   //增加发布话题
   pos_predict_cmd_pub = node.advertise<quadrotor_msgs::PositionCommand>("/pred_position_cmd", 50);
   traj_pub = node.advertise<visualization_msgs::Marker>("planning/travel_traj", 10);
-
+wing_pub = node.advertise<visualization_msgs::Marker>("HTQR/wing", 10);
   ros::Timer cmd_timer = node.createTimer(ros::Duration(0.01), cmdCallback);//
   //增加定时器
   ros::Timer pred_cmd_timer = node.createTimer(ros::Duration(0.01), PredictcmdCallback);
   ros::Timer vis_timer = node.createTimer(ros::Duration(0.25), visCallback);
+
 
   /* control parameter */
   cmd.kx[0] = pos_gain[0];
